@@ -51,7 +51,7 @@ class TripleFinetune:
     def  triple_loss_function(self, s_a, s_p, s_n, epsilon):
         # ||sa − sp|| − ||sa − sn|| + epsilon
         distanceDifference = (s_a - s_p).pow(2).sum(-1).sqrt() - (s_a - s_n).pow(2).sum(-1).sqrt() + epsilon
-        loss = max(distanceDifference, torch.tensor(0))
+        loss = torch.max(distanceDifference, torch.tensor(0))
         return loss
 
     #Encode text
