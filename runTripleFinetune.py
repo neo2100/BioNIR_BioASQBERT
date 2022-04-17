@@ -2,7 +2,7 @@ import os
 import json
 from finetune.tripleFinetune import TripleFinetune
 
-inputFileName = './dataset/BioASQ-SampleDataB_triples.json'
+inputFileName = './dataset/training9b_triples.json'
 
 # preparing inputs
 dataset = []
@@ -14,6 +14,6 @@ with open(abs_file_path, 'rb') as document_file:
 
 
 tripleFinetune = TripleFinetune(
-    "sentence-transformers/multi-qa-mpnet-base-cos-v1", '.\\finetune\models\sbert.pt')
+    "sentence-transformers/multi-qa-mpnet-base-cos-v1", 'sbert_6000_sample.pt', 'sbert.pt')
 
-tripleFinetune.trainLoop(dataset, True)
+tripleFinetune.trainLoop(dataset, 6000, 1000, False)
