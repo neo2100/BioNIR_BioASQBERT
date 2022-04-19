@@ -94,7 +94,7 @@ class TripleFinetune:
                 # Encoding sentences
                 encodedTriple = {}
                 encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'] = \
-                    self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative'])
+                    self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative1'])
                 # To calculate loss and update model manually
                 loss = self.calculateLoss(encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'])
                 total_loss += loss.item()
