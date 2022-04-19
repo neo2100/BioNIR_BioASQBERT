@@ -34,7 +34,7 @@ class TripleFinetune:
         # To use AdamW iptimizer and set learning rate
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=2e-5)
         # loss function
-        self.calculateLoss = TripletLoss(epsilon = 1.0)
+        self.calculateLoss = TripletLoss(epsilon = 0.5)
 
         # directory
         self.inputFile = inputFile
@@ -44,7 +44,6 @@ class TripleFinetune:
         self.dataset = dataset
         progress_bar = tqdm(range(self.dataset.__len__()))
         progress_bar.update(startIndex)
-        n = 0
         total_loss = 0
         for index in range(startIndex, self.dataset.__len__()):
             textTriple = self.dataset[index]
@@ -59,25 +58,23 @@ class TripleFinetune:
                 print(loss, loss.shape)
 
             total_loss += loss.item()
-            n+=1
 
             loss.backward()
             self.optimizer.step()
-            #self.optimizer.zero_grad() # ????
+            #self.optimizer.zero_grad() # ?
             # to update progress bar one step forward
             progress_bar.update(1)
             #save in save interval
             if ((index+1) % saveInterval)==0:
                 # To save the model
-                #torch.save({
-                #	'tokenizer': self.model.net.tokenizer,
-                #	'model_state_dict': self.model.net.net.state_dict()},
-                #	self.directory+str(index))
+                torch.save({
+                	'tokenizer': self.model.net.tokenizer,
+                	'model_state_dict': self.model.net.net.state_dict()},
+                	self.directory+str(index))
                 print("Last saved index: ", index)
                 self.evaluation(index+1-saveInterval, index+1)
                 
-                print(F"\r Training: Epochs {0} - Val_loss: {total_loss/n} - Batch: {n}/{5}")
-                n = 0
+                print(F"\r Training: Epochs {(index+1)/saveInterval} - Val_loss: {total_loss/saveInterval} ")
                 total_loss = 0
 
         # To save the model
@@ -87,7 +84,7 @@ class TripleFinetune:
         	self.directory)
 
     def evaluation(self, startIndex, endIndex):
-        n = 1
+        n = 0
         total_loss = 0
         num_val_batch = endIndex - startIndex
         with torch.no_grad():
@@ -101,10 +98,8 @@ class TripleFinetune:
                 # To calculate loss and update model manually
                 loss = self.calculateLoss(encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'])
                 total_loss += loss.item()
-
-                acc=0
-                print(F"\r Epochs {0} - Val_loss: {total_loss/n} - Batch: {n}/{num_val_batch}")
                 n+=1
             
+            print(F"\r Evaluation: Epochs {endIndex/num_val_batch} - Val_loss: {total_loss/n} - Batch: {n}/{num_val_batch}")
             #scheduler.step(total_loss)
             self.model.train()

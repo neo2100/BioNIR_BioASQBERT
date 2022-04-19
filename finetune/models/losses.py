@@ -16,10 +16,12 @@ class TripletLoss(torch.nn.Module):
 
     def forward(self, anchor, positive, negative):
 
-        squarred_distance_1 = (anchor - positive).pow(2).sum(1)
-        squarred_distance_2 = (anchor - negative).pow(2).sum(1)
+        euclidean_distance_1 = (anchor - positive).pow(2).sum(1).sqrt()
+        euclidean_distance_2 = (anchor - negative).pow(2).sum(1).sqrt()
+        #squarred_distance_1 = torch.dot(anchor.view(-1), positive.view(-1))
+        #squarred_distance_2 = torch.dot(anchor.view(-1), negative.view(-1))
         
-        triplet_loss = F.relu( self.epsilon + squarred_distance_1 - squarred_distance_2 ).mean()
+        triplet_loss = F.relu( self.epsilon + euclidean_distance_1 - euclidean_distance_2 ).mean()
         
         return triplet_loss
 
