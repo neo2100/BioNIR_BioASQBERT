@@ -40,6 +40,9 @@ for index, question in enumerate(questions):
     # to update progress bar one step forward
     progress_bar.update(1)
 
+# Shuffle them all
+shuffle(triples)
+
 print(triples.__len__())
 # saving outputs in a file
 script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
