@@ -18,4 +18,5 @@ Fine-tuning using Quadruple loss:
   - run runQuadrupleFunetune.py
       
 
-UNDER CONSTRUCTION...
+
+ ----------------- Read me is UNDER CONSTRUCTION -------------------
