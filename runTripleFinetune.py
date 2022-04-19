@@ -2,14 +2,14 @@ import os
 import json
 from finetune.tripleFinetune import TripleFinetune
 
-inputFileName = './dataset/training9b_triples.json'
+inputFileName = './dataset/training9b_quadruples.json'
 
 # preparing inputs
 dataset = []
 script_dir = os.path.dirname(__file__)  # <-- absolute dir the script is in
 abs_file_path = os.path.join(script_dir, inputFileName)
 with open(abs_file_path, 'rb') as document_file:
-    dataset = json.load(document_file)['triples']
+    dataset = json.load(document_file)['quadruples']
     document_file.close()
 
 
