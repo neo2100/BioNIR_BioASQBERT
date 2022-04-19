@@ -19,4 +19,4 @@ Fine-tuning using Quadruple loss:
       
 
 
- ----------------- Read me is UNDER CONSTRUCTION -------------------
+ ----------------- Readme is UNDER CONSTRUCTION -------------------
