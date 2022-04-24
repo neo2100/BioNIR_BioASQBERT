@@ -33,7 +33,7 @@ for index, question in enumerate(questions):
         triple = {}
         triple['anchor'] = question["body"]
         triple['positive'] = snippet["text"]
-        triple['negative'] = findNegativeSnippet(index, maxQuestionNum, questions)
+        triple['negative1'] = findNegativeSnippet(index, maxQuestionNum, questions)
         triples.append(triple)
      
     
