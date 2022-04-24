@@ -7,10 +7,12 @@ class SentenceTransformer(torch.nn.Module):
         super(SentenceTransformer, self).__init__()
         self.net = baseModel
         self.tokenizer = tokenizer
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     def forward(self, texts):
         # Tokenize sentences
         encoded_input = self.tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
+        encoded_input.to(self.device)
         # Compute token embeddings
         model_output = self.net(**encoded_input, return_dict=True)
         # Perform pooling
