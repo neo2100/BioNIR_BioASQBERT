@@ -14,6 +14,7 @@ with open(abs_file_path, 'rb') as document_file:
 
 
 tripleFinetune = TripleFinetune(
-    "sentence-transformers/multi-qa-mpnet-base-cos-v1", None, 'sbert_sample.pt')
+    "sentence-transformers/multi-qa-mpnet-base-cos-v1", 'sbert_nn6_qu_8000.pt', 'sbert_nn6_qu.pt')
 
-tripleFinetune.trainLoop(dataset, 0, 500, False)
+#tripleFinetune.trainLoop(dataset, 6000, 8000, 500, 2000, False)
+tripleFinetune.trainLoop(dataset, 8000, 46130, 500, 2000, False)

@@ -30,6 +30,7 @@ class TripleFinetune:
         self.model.train()
         # To use GPU if it is available
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        print('Device', self.device)
         self.model.to(self.device)
         # To use AdamW iptimizer and set learning rate
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=2e-5)
@@ -40,12 +41,12 @@ class TripleFinetune:
         self.inputFile = inputFile
         self.directory = directory
 
-    def trainLoop(self, dataset, startIndex, saveInterval, Testing = False):
+    def trainLoop(self, dataset, startIndex, endIndex, evaluateInterval, saveInterval, Testing = False):
         self.dataset = dataset
         progress_bar = tqdm(range(self.dataset.__len__()))
         progress_bar.update(startIndex)
         total_loss = 0
-        for index in range(startIndex, self.dataset.__len__()):
+        for index in range(startIndex, min(endIndex,self.dataset.__len__())):
             textTriple = self.dataset[index]
             self.model.zero_grad()
             # Encoding sentences
@@ -70,18 +71,20 @@ class TripleFinetune:
                 torch.save({
                 	'tokenizer': self.model.net.tokenizer,
                 	'model_state_dict': self.model.net.net.state_dict()},
-                	self.directory+str(index))
+                	self.directory+'_Interval_'+str(index+1))
                 print("Last saved index: ", index)
-                self.evaluation(index+1-saveInterval, index+1)
-                
-                print(F"\r Training: Epochs {(index+1)/saveInterval} - Val_loss: {total_loss/saveInterval} ")
+            # evaluate in evaluate interval
+            if ((index+1) % evaluateInterval)==0:
+                print(F"\r Training: Epochs {(index+1)/evaluateInterval} - Val_loss: {total_loss/evaluateInterval} ")
                 total_loss = 0
+
+                self.evaluation(index+1-evaluateInterval, index+1)
 
         # To save the model
         torch.save({
         	'tokenizer': self.model.net.tokenizer,
         	'model_state_dict': self.model.net.net.state_dict()},
-        	self.directory)
+        	self.directory+'_Ended_'+str(endIndex))
 
     def evaluation(self, startIndex, endIndex):
         n = 0
@@ -94,7 +97,7 @@ class TripleFinetune:
                 # Encoding sentences
                 encodedTriple = {}
                 encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'] = \
-                    self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative'])
+                    self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative1'])
                 # To calculate loss and update model manually
                 loss = self.calculateLoss(encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'])
                 total_loss += loss.item()
