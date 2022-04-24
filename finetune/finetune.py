@@ -4,12 +4,12 @@
 import torch
 from transformers import AutoTokenizer, AutoModel
 from tqdm.auto import tqdm
-from .models.losses import TripletLoss
+from .models.losses import TripletLoss, QuadrupletLoss
 from .models.sentenceTransformer import SentenceTransformer
-from .models.siameseNetworks import TripletSiamese
+from .models.siameseNetworks import TripletSiamese, QuadrupletSiamese
 
-class TripleFinetune:
-    def __init__(self, modelCheckPoint, inputFile, directory):
+class Finetune:
+    def __init__(self, networkModel, epsilon, learningRate, modelCheckPoint, inputFile, directory):
         # Prepare the model
         self.checkpoint = modelCheckPoint
         baseModel = AutoModel.from_pretrained(self.checkpoint, return_dict=True)
@@ -24,7 +24,12 @@ class TripleFinetune:
 
         # make simese network
         transformerModel = SentenceTransformer(baseModel, tokenizer)
-        self.model = TripletSiamese(transformerModel)
+        if networkModel == "Triple":
+            self.model = TripletSiamese(transformerModel)
+            self.calculateLoss = TripletLoss(epsilon['epsilon1']) # loss function
+        else:
+            self.model = QuadrupletSiamese(transformerModel) 
+            self.calculateLoss = QuadrupletLoss(epsilon['epsilon1'], epsilon['epsilon2']) # loss function
         
         # Put the model in train mode
         self.model.train()
@@ -33,28 +38,30 @@ class TripleFinetune:
         print('Device', self.device)
         self.model.to(self.device)
         # To use AdamW iptimizer and set learning rate
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=2e-5)
-        # loss function
-        self.calculateLoss = TripletLoss(epsilon = 0.5)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=learningRate)
 
         # directory
         self.inputFile = inputFile
         self.directory = directory
+        self.trainingLosses = []
+        self.evaluationLosses = []
 
     def trainLoop(self, dataset, startIndex, endIndex, evaluateInterval, saveInterval, Testing = False):
         self.dataset = dataset
+        #   reseting
+        self.trainingLosses = []
+        self.evaluationLosses = []
+
         progress_bar = tqdm(range(self.dataset.__len__()))
         progress_bar.update(startIndex)
         total_loss = 0
         for index in range(startIndex, min(endIndex,self.dataset.__len__())):
-            textTriple = self.dataset[index]
+            textBundle = self.dataset[index]
             self.model.zero_grad()
             # Encoding sentences
-            encodedTriple = {}
-            encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'] = \
-                self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative1'])
+            encoded =  self.model(textBundle)
             # To calculate loss and update model manually
-            loss = self.calculateLoss(encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'])
+            loss = self.calculateLoss(encoded)
             if Testing:
                 print(loss, loss.shape)
 
@@ -75,7 +82,8 @@ class TripleFinetune:
                 print("Last saved index: ", index)
             # evaluate in evaluate interval
             if ((index+1) % evaluateInterval)==0:
-                print(F"\r Training: Epochs {(index+1)/evaluateInterval} - Val_loss: {total_loss/evaluateInterval} ")
+                print(F"\r Training: Epochs {(index+1)/evaluateInterval} - Val_loss: {total_loss/evaluateInterval} - index: {index+1} ")
+                self.trainingLosses.append(str(total_loss/evaluateInterval))
                 total_loss = 0
 
                 self.evaluation(index+1-evaluateInterval, index+1)
@@ -85,6 +93,9 @@ class TripleFinetune:
         	'tokenizer': self.model.net.tokenizer,
         	'model_state_dict': self.model.net.net.state_dict()},
         	self.directory+'_Ended_'+str(endIndex))
+        # print losses formatted
+        print("Training Loss:", ','.join(self.trainingLosses))
+        print("Evaluation Loss:", ','.join(self.evaluationLosses))
 
     def evaluation(self, startIndex, endIndex):
         n = 0
@@ -93,16 +104,16 @@ class TripleFinetune:
         with torch.no_grad():
             self.model.eval()
             for index in range(startIndex, endIndex):
-                textTriple = self.dataset[index]
+                textBundle = self.dataset[index]
                 # Encoding sentences
-                encodedTriple = {}
-                encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'] = \
-                    self.model(textTriple['anchor'], textTriple['positive'], textTriple['negative1'])
+                encoded = self.model(textBundle)
                 # To calculate loss and update model manually
-                loss = self.calculateLoss(encodedTriple['anchor'], encodedTriple['positive'], encodedTriple['negative'])
+                loss = self.calculateLoss(encoded)
                 total_loss += loss.item()
                 n+=1
             
             print(F"\r Evaluation: Epochs {endIndex/num_val_batch} - Val_loss: {total_loss/n} - Batch: {n}/{num_val_batch}")
+            self.evaluationLosses.append(str(total_loss/n))
+
             #scheduler.step(total_loss)
             self.model.train()

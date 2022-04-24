@@ -7,13 +7,13 @@ class TripletSiamese(torch.nn.Module):
 
         self.net = baseModel
 
-    def forward(self, anchor, positive, negative):
+    def forward(self, triple):
+        output = {}
+        output['anchor'] = self.net(triple['anchor'])
+        output['positive'] = self.net(triple['positive'])
+        output['negative1'] = self.net(triple['negative1'])
 
-        output1 = self.net(anchor)
-        output2 = self.net(positive)
-        output3 = self.net(negative)
-
-        return output1, output2, output3
+        return output
 
 class QuadrupletSiamese(torch.nn.Module):
 
@@ -21,11 +21,11 @@ class QuadrupletSiamese(torch.nn.Module):
         super(QuadrupletSiamese, self).__init__()
         self.net = baseModel
 
-    def forward(self, anchor, positive, negative1, negative2):
+    def forward(self, quadruple):
+        output = {}
+        output['anchor'] = self.net(quadruple['anchor'])
+        output['positive'] = self.net(quadruple['positive'])
+        output['negative1'] = self.net(quadruple['negative1'])
+        output['negative2'] = self.net(quadruple['negative2'])
 
-        output1 = self.net(anchor)
-        output2 = self.net(positive)
-        output3 = self.net(negative1)
-        output4 = self.net(negative2)
-
-        return output1, output2, output3, output4
+        return output

@@ -14,10 +14,10 @@ class TripletLoss(torch.nn.Module):
         super(TripletLoss, self).__init__()
         self.epsilon = epsilon
 
-    def forward(self, anchor, positive, negative):
+    def forward(self, triple):
 
-        euclidean_distance_1 = (anchor - positive).pow(2).sum(1).sqrt()
-        euclidean_distance_2 = (anchor - negative).pow(2).sum(1).sqrt()
+        euclidean_distance_1 = (triple['anchor'] - triple['positive']).pow(2).sum(1).sqrt()
+        euclidean_distance_2 = (triple['anchor'] - triple['negative1']).pow(2).sum(1).sqrt()
         #squarred_distance_1 = torch.dot(anchor.view(-1), positive.view(-1))
         #squarred_distance_2 = torch.dot(anchor.view(-1), negative.view(-1))
         
@@ -35,14 +35,22 @@ class QuadrupletLoss(torch.nn.Module):
         self.epsilon1 = epsilon1
         self.epsilon2 = epsilon2
 
-    def forward(self, anchor, positive, negative1, negative2):
+    def forward(self, quadruple):
 
-        squarred_distance_pos = (anchor - positive).pow(2).sum(1)
-        squarred_distance_neg = (anchor - negative1).pow(2).sum(1)
-        squarred_distance_neg_b = (negative1 - negative2).pow(2).sum(1)
+        #squarred_distance_pos = (anchor - positive).pow(2).sum(1)
+        #squarred_distance_neg = (anchor - negative1).pow(2).sum(1)
+        #squarred_distance_neg_b = (negative1 - negative2).pow(2).sum(1)
+        
+        #quadruplet_loss = \
+        #    F.relu(self.epsilon1 + squarred_distance_pos - squarred_distance_neg) \
+        #    + F.relu(self.epsilon2 + squarred_distance_pos - squarred_distance_neg_b)
+        
+        euclidean_distance_pos = (quadruple['anchor'] - quadruple['positive']).pow(2).sum(1).sqrt()
+        euclidean_distance_neg = (quadruple['anchor'] - quadruple['negative1']).pow(2).sum(1).sqrt()
+        euclidean_distance_neg_b = (quadruple['negative1'] - quadruple['negative2']).pow(2).sum(1).sqrt()
 
         quadruplet_loss = \
-            F.relu(self.epsilon1 + squarred_distance_pos - squarred_distance_neg) \
-            + F.relu(self.epsilon2 + squarred_distance_pos - squarred_distance_neg_b)
+            F.relu(self.epsilon1 + euclidean_distance_pos - euclidean_distance_neg) \
+            + F.relu(self.epsilon2 + euclidean_distance_pos - euclidean_distance_neg_b)
 
         return quadruplet_loss.mean()
