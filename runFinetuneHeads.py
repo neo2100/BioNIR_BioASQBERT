@@ -1,6 +1,6 @@
 import os
 import json
-from finetune.finetune import Finetune
+from finetune.finetuneHeads import FinetuneHeads
 
 inputFileName = './dataset/training9b_quadruples.json'
 
@@ -12,29 +12,29 @@ with open(abs_file_path, 'rb') as document_file:
     dataset = json.load(document_file)['quadruples']
     document_file.close()
 
-# finetune = Finetune(
-#      networkModel="Triple",
+finetune = FinetuneHeads(
+     networkModel="Triple",
+     epsilon={
+         'epsilon1': 1
+     },
+     learningRate=1e-3,
+     modelCheckPoint="sentence-transformers/multi-qa-mpnet-base-cos-v1",
+     inputFile=None,
+     directory='bionirhead_nn0_qu.pt')
+
+# finetune = FinetuneHeads(
+#      networkModel="Quadruple",
 #      epsilon={
-#          'epsilon1': 0.5
+#          'epsilon1': 0.5,
+#          'epsilon2': 0.25
 #      },
 #      learningRate=1e-5,
 #      modelCheckPoint="sentence-transformers/multi-qa-mpnet-base-cos-v1",
 #      inputFile=None,
-#      directory='sbert_nn6.83_qu.pt')
-
-finetune = Finetune(
-     networkModel="Quadruple",
-     epsilon={
-         'epsilon1': 0.5,
-         'epsilon2': 0.25
-     },
-     learningRate=1e-5,
-     modelCheckPoint="sentence-transformers/multi-qa-mpnet-base-cos-v1",
-     inputFile=None,
-     directory='sbert_nn7.83_qu.pt')
+#      directory='sbert_nn7.83_qu.pt')
 
 #finetune.trainLoop(dataset, 0, 8000, 500, 2000, True)
-finetune.trainLoop(dataset, 0, 46130, 500, 46131, False)
+finetune.trainLoop(dataset, 0, 46130, 500, 10, False)
 
 # nn6.0: Triple, epsilon 0.5, lr=2e-5    #gpu018
 # nn6.1: Triple, epsilon 1.0, lr=2e-5

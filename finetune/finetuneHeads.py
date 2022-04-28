@@ -7,28 +7,29 @@ from tqdm.auto import tqdm
 from .models.losses import TripletLoss, QuadrupletLoss
 from .models.sentenceTransformer import SentenceTransformer
 from .models.siameseNetworks import TripletSiamese, QuadrupletSiamese
+from .models.bionirHeads import LstmNet
 
-class Finetune:
+class FinetuneHeads:
     def __init__(self, networkModel, epsilon, learningRate, modelCheckPoint, inputFile, directory):
         # Prepare the model
         self.checkpoint = modelCheckPoint
         baseModel = AutoModel.from_pretrained(self.checkpoint, return_dict=True)
+        # To tokenize and encode the sentences
+        tokenizer = AutoTokenizer.from_pretrained(self.checkpoint)
         # Load model if inputfile
-        if inputFile:
-            checkpoint = torch.load(inputFile, map_location='cpu')
-            tokenizer = checkpoint['tokenizer']
-            baseModel.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            # To tokenize and encode the sentences
-            tokenizer = AutoTokenizer.from_pretrained(self.checkpoint)
+        #if inputFile:
+        #    checkpoint = torch.load(inputFile, map_location='cpu')
+        #    tokenizer = checkpoint['tokenizer']
+        #    baseModel.load_state_dict(checkpoint['model_state_dict'])
 
         # make simese network
-        transformerModel = SentenceTransformer(baseModel, tokenizer)
+        self.transformerModel = SentenceTransformer(baseModel, tokenizer, noGrad = True)
+        bionirHead = LstmNet(768, 48, 32, 16)
         if networkModel == "Triple":
-            self.model = TripletSiamese(transformerModel)
+            self.model = TripletSiamese(bionirHead)
             self.calculateLoss = TripletLoss(epsilon['epsilon1']) # loss function
         else:
-            self.model = QuadrupletSiamese(transformerModel) 
+            self.model = QuadrupletSiamese(bionirHead) 
             self.calculateLoss = QuadrupletLoss(epsilon['epsilon1'], epsilon['epsilon2']) # loss function
         
         # Put the model in train mode
@@ -58,8 +59,13 @@ class Finetune:
         for index in range(startIndex, min(endIndex,self.dataset.__len__())):
             textBundle = self.dataset[index]
             self.model.zero_grad()
+            # Transform Sentences
+            embedBundle = {}
+            embedBundle['anchor'] = self.transformerModel(textBundle['anchor']).view(-1, 1, 768)
+            embedBundle['positive'] = self.transformerModel(textBundle['positive']).view(-1, 1, 768)
+            embedBundle['negative1'] = self.transformerModel(textBundle['negative1']).view(-1, 1, 768)
             # Encoding sentences
-            encoded =  self.model(textBundle)
+            encoded =  self.model(embedBundle)
             # To calculate loss and update model manually
             loss = self.calculateLoss(encoded)
             if Testing:
@@ -75,9 +81,7 @@ class Finetune:
             #save in save interval
             if ((index+1) % saveInterval)==0:
                 # To save the model
-                torch.save({
-                	'tokenizer': self.model.net.tokenizer,
-                	'model_state_dict': self.model.net.net.state_dict()},
+                torch.save( self.model.net.state_dict(),
                 	self.directory+'_Interval_'+str(index+1))
                 print("Last saved index: ", index)
             # evaluate in evaluate interval
@@ -89,9 +93,7 @@ class Finetune:
                 self.evaluation(index+1-evaluateInterval, index+1)
 
         # To save the model
-        torch.save({
-        	'tokenizer': self.model.net.tokenizer,
-        	'model_state_dict': self.model.net.net.state_dict()},
+        torch.save(self.model.net.state_dict(),
         	self.directory+'_Ended_'+str(endIndex))
         # print losses formatted
         print("Training Loss:", ','.join(self.trainingLosses))
@@ -105,8 +107,13 @@ class Finetune:
             self.model.eval()
             for index in range(startIndex, endIndex):
                 textBundle = self.dataset[index]
+                # Transform Sentences
+                embedBundle = {}
+                embedBundle['anchor'] = self.transformerModel(textBundle['anchor']).view(-1, 1, 768)
+                embedBundle['positive'] = self.transformerModel(textBundle['positive']).view(-1, 1, 768)
+                embedBundle['negative1'] = self.transformerModel(textBundle['negative1']).view(-1, 1, 768)
                 # Encoding sentences
-                encoded = self.model(textBundle)
+                encoded = self.model(embedBundle)
                 # To calculate loss and update model manually
                 loss = self.calculateLoss(encoded)
                 total_loss += loss.item()
