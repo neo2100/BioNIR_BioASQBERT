@@ -12,9 +12,11 @@ class LstmNet(torch.nn.Module):
         self.lstm2 = torch.nn.LSTM(2*hidden_dim1, hidden_dim2, dropout=0.2, batch_first=True, bidirectional=True)
         self.lstm3 = torch.nn.LSTM(2*hidden_dim2 , hidden_dim3, dropout=0.2, batch_first=True, bidirectional=True)
 
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
         
     def forward(self, sequence):
-        print(sequence.shape)
+        sequence.to(self.device)
         x, _ = self.lstm(sequence)
         
         x = torch.nn.ReLU()(x)
