@@ -38,6 +38,7 @@ class FinetuneHeads:
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         print('Device', self.device)
         self.model.to(self.device)
+        self.transformerModel.to(self.device) 
         # To use AdamW iptimizer and set learning rate
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=learningRate)
 
